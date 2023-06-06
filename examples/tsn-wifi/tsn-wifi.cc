@@ -148,9 +148,10 @@ main (int argc, char *argv[])
   uint8_t mcs = 7; /* Modulation and Coding Scheme. */
   std::string wifiStandard = "ac";
   double frequency = 5; /* Frequency in GHz. */
-  uint32_t tsn_enabled = 1;
+  bool tsn_enabled = 1;
   double BreakpointDistance = 10; // Default for TGn model D
   bool RandomPositions = true;
+  uint32_t TsnCycle = 3000; //us
   uint32_t app_start_time = 1000000; //us
   float safety_wdt = 250; //ms
 
@@ -169,20 +170,12 @@ main (int argc, char *argv[])
   cmd.AddValue ("BreakpointDistance", "Breakpoint distance for TGn models (Default: TGn model D 10m)", BreakpointDistance);
   cmd.AddValue ("RandomPositions", "Randomize positions of nodes", RandomPositions);
   cmd.AddValue ("NumberOfSlaves", "Number of slaves", numberOfSlaves);
-
+  cmd.AddValue ("TsnCycle", "Tsn Cycle in us", TsnCycle);
   cmd.AddValue ("Wdt", "Safety watchdog in ms", safety_wdt);
   cmd.Parse (argc, argv);
 
-  uint32_t TsnCycle = tsn_enabled; //us
-  uint32_t relative_start_time;
-  if (TsnCycle)
-  {
-   relative_start_time = app_start_time % TsnCycle;
-  }
-  else
-  {
-   relative_start_time = 0;
-  }
+
+  uint32_t relative_start_time = app_start_time % TsnCycle;
   app_start_time = app_start_time + (TsnCycle - relative_start_time);
 
   std::cout << "App start time: " << app_start_time << " Relative " << relative_start_time << " cicle " << TsnCycle <<  std::endl;
