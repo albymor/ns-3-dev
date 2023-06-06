@@ -29,6 +29,7 @@
 #include "wifi-mac-queue.h"
 #include "mac-tx-middle.h"
 #include "wifi-mac-trailer.h"
+#include "timestamp-tag.h"
 
 #undef NS_LOG_APPEND_CONTEXT
 #define NS_LOG_APPEND_CONTEXT if (m_mac != 0) { std::clog << "[mac=" << m_mac->GetAddress () << "] "; }
@@ -294,6 +295,12 @@ void
 Txop::Queue (Ptr<Packet> packet, const WifiMacHeader &hdr)
 {
   NS_LOG_FUNCTION (this << packet << &hdr);
+  TimestampTag timestamp;
+  if(packet->FindFirstMatchingByteTag (timestamp))
+  {
+    Time deadline = timestamp.GetTimestamp ();
+    //std::cout << "Now: " << Simulator::Now () << " deadline: " << deadline << std::endl;
+  }
   // remove the priority tag attached, if any
   SocketPriorityTag priorityTag;
   packet->RemovePacketTag (priorityTag);

@@ -137,6 +137,7 @@ set(source_files
     model/yans-error-rate-model.cc
     model/yans-wifi-channel.cc
     model/yans-wifi-phy.cc
+    model/timestamp-tag.cc
 )
 
 set(header_files
@@ -277,6 +278,7 @@ set(header_files
     model/yans-error-rate-model.h
     model/yans-wifi-channel.h
     model/yans-wifi-phy.h
+    model/timestamp-tag.h
 )
 
 build_lib(
