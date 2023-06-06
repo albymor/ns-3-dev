@@ -418,7 +418,7 @@ StaWifiMac::MissedBeacons (void)
     {
       delay = GetWifiPhy ()->GetDelayUntilIdle ();
     }
-  Simulator::Schedule (delay, &StaWifiMac::Disassociated, this);
+  //Simulator::Schedule (delay, &StaWifiMac::Disassociated, this);
 }
 
 void

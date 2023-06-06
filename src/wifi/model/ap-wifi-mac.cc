@@ -950,7 +950,10 @@ ApWifiMac::SendOneBeacon (void)
 
   //The beacon has it's own special queue, so we load it in there
   m_beaconTxop->Queue (packet, hdr);
-  m_beaconEvent = Simulator::Schedule (GetBeaconInterval (), &ApWifiMac::SendOneBeacon, this);
+  if (Now().GetSeconds() < 1)
+  {
+    m_beaconEvent = Simulator::Schedule (GetBeaconInterval (), &ApWifiMac::SendOneBeacon, this);
+  }
 
   //If a STA that does not support Short Slot Time associates,
   //the AP shall use long slot time beginning at the first Beacon
