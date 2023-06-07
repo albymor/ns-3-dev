@@ -154,6 +154,7 @@ main (int argc, char *argv[])
   uint32_t TsnCycle = 3000; //us
   uint32_t app_start_time = 1000000; //us
   float safety_wdt = 250; //ms
+  uint32_t guard_band = 1000; //us
 
 
 
@@ -172,6 +173,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("NumberOfSlaves", "Number of slaves", numberOfSlaves);
   cmd.AddValue ("TsnCycle", "Tsn Cycle in us", TsnCycle);
   cmd.AddValue ("Wdt", "Safety watchdog in ms", safety_wdt);
+  cmd.AddValue ("GuardBand", "Guard band in us", guard_band);
   cmd.Parse (argc, argv);
 
 
@@ -226,9 +228,9 @@ main (int argc, char *argv[])
 
   Time::SetResolution (Time::NS);
   Time sendPeriod, scheduleDuration, simulationDuration;
-  scheduleDuration = MicroSeconds (TsnCycle/2);
+  scheduleDuration = MicroSeconds (TsnCycle/3);
   simulationDuration = Seconds (simulationTime);
-  sendPeriod = scheduleDuration * 2;
+  sendPeriod = (scheduleDuration * 3);
   //sendPeriod -= MicroSeconds(1);
 
   // LogComponentEnable("TasQueueDisc",LOG_LEVEL_LOGIC);
@@ -370,8 +372,8 @@ main (int argc, char *argv[])
     schedulePlanClient.Add (scheduleDuration, {0,1,0,0,0,0,0,0});
 
     /* for tests with interfering traffic*/
-    // schedulePlanClient.Add (MilliSeconds(5), {0, 1, 0, 0, 1, 0, 0, 0}); // FIXME: We need to keep queue 1 always open otherwise ARP does not work
-    // schedulePlanClient.Add (MilliSeconds(3), {0,1,1,0,0,0,0,0});
+    schedulePlanClient.Add (scheduleDuration-MicroSeconds(guard_band), {0, 1, 0, 0, 0, 1, 0, 0}); // FIXME: We need to keep queue 1 always open otherwise ARP does not work
+    schedulePlanClient.Add (MicroSeconds(guard_band), {0,1,0,0,0,0,0,0});
 
 
     std::cout << "> Master" << schedulePlanClient << std::endl;
@@ -386,8 +388,8 @@ main (int argc, char *argv[])
                                 {0,1,0,0,0,0,0,0});
 
         /* for tests with interfering traffic*/
-        // schedulePlanServer.Add (MilliSeconds(5), {0, 1, 0, 0, 1, 0, 0, 0}); // FIXME: We need to keep queue 1 always open otherwise ARP does not work
-        // schedulePlanServer.Add (MilliSeconds(3), {0,1,1,0,0,0,0,0});
+        schedulePlanServer.Add (scheduleDuration-MicroSeconds(guard_band), {0, 1, 0, 0, 0, 1, 0, 0}); // FIXME: We need to keep queue 1 always open otherwise ARP does not work
+        schedulePlanServer.Add (MicroSeconds(guard_band), {0,1,0,0,0,0,0,0});
         schedulePlanServerArray.push_back(schedulePlanServer);
 
         std::cout << "> Slave " << +i << schedulePlanServer << std::endl;
@@ -501,28 +503,28 @@ main (int argc, char *argv[])
     }
     apps.Stop (simulationDuration);
   }
+  
+  uint16_t videoport = 50000;
+  Address hubLocalAddress (InetSocketAddress (Ipv4Address::GetAny (), videoport));
+  PacketSinkHelper packetSinkHelper ("ns3::TcpSocketFactory", hubLocalAddress);
+  ApplicationContainer hubApp = packetSinkHelper.Install (ap);
+  hubApp.Start (Seconds (2.0));
+  hubApp.Stop (Seconds (10.0));
 
-    // uint16_t videoport = 50000;
-    // Address hubLocalAddress (InetSocketAddress (Ipv4Address::GetAny (), videoport));
-    // PacketSinkHelper packetSinkHelper ("ns3::TcpSocketFactory", hubLocalAddress);
-    // ApplicationContainer hubApp = packetSinkHelper.Install (ap);
-    // hubApp.Start (Seconds (1.0));
-    // hubApp.Stop (Seconds (10.0));
+  std::string flowsDatarate = "5Mbps";
+  uint32_t flowsPacketsSize = 256;
 
-    // std::string flowsDatarate = "10Mbps";
-    // uint32_t flowsPacketsSize = 1000;
-
-    // InetSocketAddress socketAddressUp = InetSocketAddress (apInterface.GetAddress (0), videoport);
-    // OnOffHelper onOffHelperUp ("ns3::TcpSocketFactory", Address ());
-    // onOffHelperUp.SetAttribute ("Remote", AddressValue (socketAddressUp));
-    // onOffHelperUp.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
-    // onOffHelperUp.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
-    // onOffHelperUp.SetAttribute ("PacketSize", UintegerValue (flowsPacketsSize));
-    // onOffHelperUp.SetAttribute ("DataRate", StringValue (flowsDatarate));
-    // //onOffHelperUp.Install (stas);
-    // ApplicationContainer VideoSink = onOffHelperUp.Install (stas);
-    // VideoSink.Start (Seconds (1.0));
-    // VideoSink.Stop (Seconds (10.0));
+  InetSocketAddress socketAddressUp = InetSocketAddress (apInterface.GetAddress (0), videoport);
+  OnOffHelper onOffHelperUp ("ns3::TcpSocketFactory", Address ());
+  onOffHelperUp.SetAttribute ("Remote", AddressValue (socketAddressUp));
+  onOffHelperUp.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
+  onOffHelperUp.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
+  onOffHelperUp.SetAttribute ("PacketSize", UintegerValue (flowsPacketsSize));
+  onOffHelperUp.SetAttribute ("DataRate", StringValue (flowsDatarate));
+  //onOffHelperUp.Install (stas);
+  ApplicationContainer VideoSink = onOffHelperUp.Install (stas);
+  VideoSink.Start (Seconds (2.0));
+  VideoSink.Stop (Seconds (10.0));
 
   if (tsn_enabled)
   {
@@ -596,7 +598,7 @@ ipv4PacketFilter0 (Ptr<QueueDiscItem> item)
   else
   {
     //std::cout << "No FailSafeTag: " << std::endl;
-    return 2;
+    return 5;
   }
   //return 4;
 }
@@ -613,7 +615,7 @@ ipv4PacketFilter1 (Ptr<QueueDiscItem> item)
   else
   {
     //std::cout << "No FailSafeTag: " << std::endl;
-    return 2;
+    return 5;
   }
 }
 
